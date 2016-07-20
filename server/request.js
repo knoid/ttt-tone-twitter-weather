@@ -1,13 +1,17 @@
 var
 
 request = require('request'),
-vcap = JSON.parse(process.env.VCAP_SERVICES || {});
+vcap = {};
 
-module.exports = function(serviceName) {
+try {
+  vcap = JSON.parse(process.env.VCAP_SERVICES || {});
+} catch (e) {}
+
+module.exports = function(serviceName, baseUrl) {
   var service = vcap[serviceName] && vcap[serviceName][0];
 
   return request.defaults({
-    baseUrl: service.credentials.url,
+    baseUrl: service ? service.credentials.url : baseUrl,
     followRedirect: true,
     json: true
   });
