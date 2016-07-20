@@ -1,4 +1,4 @@
-# Hands-on: APIs de Watson en Bluemix
+# Hands-on: APIs de Watson en Bluemix
 
 Bluemix example using Twitter Insights, Weather Insights and Tone Analyzer
 
