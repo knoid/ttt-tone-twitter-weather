@@ -1,0 +1,15 @@
+{
+  "name": "ttt-tone-twitter-weather",
+  "description": "Exersice for the Teach the Teacher event at IBM Argentina.",
+  "scripts": {
+    "start": "node server/app.js"
+  },
+  "version": "0.0.1",
+  "dependencies": {
+    "express": "^4.14.0",
+    "morgan": "^1.7.0",
+    "request": "^2.73.0",
+    "serve-static": "^1.11.1",
+    "watson-developer-cloud": "^1.12.2"
+  }
+}
