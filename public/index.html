@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en-US">
+
+<head>
+	<title>Tone Twitter Weather</title>
+	<meta charset="utf-8">
+	<script type="text/javascript" src="http://d3js.org/d3.v2.min.js"></script>
+	<style type="text/css">
+		body {
+			font-family: Roboto, "Helvetica Neue", sans-serif;
+		}
+	</style>
+</head>
+
+<body>
+	<img src="icon0.png">
+	<div id="charts"></div>
+	<script type="text/javascript">
+		function drawChart(value, text) {
+			var width = 200,
+				height = 200;
+
+			var rad = (width / 2) - 10;
+			var offset = rad * 0.02;
+
+			var arc = d3.svg.arc()
+				.outerRadius(rad)
+				.innerRadius(rad)
+				.startAngle(0)
+				.endAngle((value * 360) * (Math.PI/180));
+
+			var svg = d3.select("#charts").append('svg');
+			var g = svg.attr('width', width)
+				.attr('height', height)
+				.append('g')
+				.attr('transform', 'translate(' + (width / 2) + ',' + (height / 2) + ')');
+
+			var circle = g.append('circle')
+				.attr('r', rad - offset * 2 - 15)
+				.style('fill', '#B7B1A5');
+		
+			g.append("path")
+				.attr("d", arc)
+				.style('stroke', '#2196F3')
+				.attr('class', 'outer')
+				.style('fill', 'none')
+				.style('stroke-width', 6)
+				.attr('stroke-linecap', 'round')
+				.attr('stroke-linejoin', 'round');
+
+			var line1 = g.append('text')
+				.style("text-anchor", "middle");
+
+
+			var total = Math.round(value * 100);
+			line1.append('tspan')
+				.style('font-size', '1.5em')
+				.style('fill', '#444')
+				.text( Math.round(value * 100));
+
+			line1.append('tspan')
+				.style('font-size', '1em')
+				.text('%')
+
+			var line2 = g.append('svg:image')
+				.attr('xlink:href', 'images/weathericons/icon27.png');
+				// .attr('dy', '12%')
+				// .style("text-anchor", "middle")
+				// .style('font-size', '0.75em')
+				// //.style('fill', '#888')
+				// .text(text)
+
+
+			var line3 = g.append('text')
+				.attr('dy', '24%')
+				.style("text-anchor", "middle")
+				.style('font-size', '0.75em')
+				//.style('fill', '#888')
+				.text(text)
+		}	
+
+		drawChart(0.65, "Sunny");
+		drawChart(0.75, "Partly Cloudy");
+		drawChart(0.45, "Cloudy");
+		drawChart(0.25, "Rain");
+
+	</script>
+
+</body>
+
+</html>
