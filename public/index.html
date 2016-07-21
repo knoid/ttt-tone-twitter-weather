@@ -8,15 +8,60 @@
 	<style type="text/css">
 		body {
 			font-family: Roboto, "Helvetica Neue", sans-serif;
+			color: #444;
+		}
+
+		.center-block {
+			text-align:center;
+			display:block;
 		}
 	</style>
 </head>
 
 <body>
-	<img src="icon0.png">
-	<div id="charts"></div>
+	<h1>Likelihood of joy in the tweets</h1>
+	<div id="loading" class="center-block"><img src="images/watson.gif"></div>
+	<div id="charts" class="center-block"></div>
 	<script type="text/javascript">
-		function drawChart(value, text) {
+
+		var xmlhttp = new XMLHttpRequest();
+		var url = "http://ttt-tone-twitter-weather.mybluemix.net/output";
+
+		xmlhttp.onreadystatechange = function() {
+			if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+				var json = JSON.parse(xmlhttp.responseText);
+				hideLoading();
+				drawCharts(json);
+			}
+		};
+		xmlhttp.open("GET", url, true);
+		xmlhttp.send();
+
+		function hideLoading() {
+			document.getElementById("loading").style.display = 'none';
+		}
+
+		function drawCharts(json) {
+			var grouped_data = d3.nest()
+				.key(function(d) {
+					return d.weather;
+				}).entries(json)
+				.map(function(d) { 
+					return {
+						key:d.key,
+						value: d3.mean(d.values, function(v){return v.tone.score;}),
+						icon:d.values[0].weather_icon
+					};
+				})
+				.sort(function(a, b) { 
+					return b.value - a.value;
+				});
+			for (var i = 0; i < grouped_data.length; i++) {
+				drawChart(grouped_data[i].value, grouped_data[i].key, grouped_data[i].icon);
+			};
+		}
+
+		function drawChart(value, text, icon) {
 			var width = 200,
 				height = 200;
 
@@ -44,7 +89,7 @@
 				.style('stroke', '#2196F3')
 				.attr('class', 'outer')
 				.style('fill', 'none')
-				.style('stroke-width', 6)
+				.style('stroke-width', 10)
 				.attr('stroke-linecap', 'round')
 				.attr('stroke-linejoin', 'round');
 
@@ -55,34 +100,27 @@
 			var total = Math.round(value * 100);
 			line1.append('tspan')
 				.style('font-size', '1.5em')
-				.style('fill', '#444')
-				.text( Math.round(value * 100));
+				// .style('fill', '#444')
+				.text( Math.round(value * 100))
+				.attr('y', '-7.5%');
 
 			line1.append('tspan')
 				.style('font-size', '1em')
 				.text('%')
 
 			var line2 = g.append('svg:image')
-				.attr('xlink:href', 'images/weathericons/icon27.png');
-				// .attr('dy', '12%')
-				// .style("text-anchor", "middle")
-				// .style('font-size', '0.75em')
-				// //.style('fill', '#888')
-				// .text(text)
-
+				.attr('xlink:href', 'images/weathericons/icon' + icon + '.png')
+				.attr('x', '-25px')
+				.attr('y', '-12px')
+				.style("width", "50px")
+				.style("height", "50px");
 
 			var line3 = g.append('text')
 				.attr('dy', '24%')
 				.style("text-anchor", "middle")
 				.style('font-size', '0.75em')
-				//.style('fill', '#888')
 				.text(text)
 		}	
-
-		drawChart(0.65, "Sunny");
-		drawChart(0.75, "Partly Cloudy");
-		drawChart(0.45, "Cloudy");
-		drawChart(0.25, "Rain");
 
 	</script>
 
