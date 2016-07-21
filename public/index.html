@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en-US">
+
+<head>
+	<title>Tone Twitter Weather</title>
+	<meta charset="utf-8">
+	<script type="text/javascript" src="http://d3js.org/d3.v2.min.js"></script>
+	<style type="text/css">
+		body {
+			font-family: Roboto, "Helvetica Neue", sans-serif;
+			color: #444;
+		}
+
+		.center-block {
+			text-align:center;
+			display:block;
+		}
+
+		.domain {
+			fill: none;
+		}
+
+		svg {
+			fill: #444;
+		}
+	</style>
+</head>
+
+<body>
+	<h1>Likelihood of joy in the tweets</h1>
+	<div id="loading" class="center-block"><img src="images/watson.gif"></div>
+	<div id="charts" class="center-block"></div>
+	<script type="text/javascript">
+
+		var xmlhttp = new XMLHttpRequest();
+
+		// TODO: change next line to point to your REST API
+		var url = "output.json";
+
+		xmlhttp.onreadystatechange = function() {
+			if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+				var json = JSON.parse(xmlhttp.responseText);
+				hideLoading();
+				drawGaugeCharts(json);
+				drawScatterPlot(json);
+			}
+		};
+		xmlhttp.open("GET", url, true);
+		xmlhttp.send();
+
+		function hideLoading() {
+			document.getElementById("loading").style.display = 'none';
+		}
+
+		var grouped_data;
+
+		function drawGaugeCharts(json) {
+			grouped_data = d3.nest()
+				.key(function(d) {
+					return d.weather;
+				}).entries(json)
+				.map(function(d) { 
+					return {
+						key:d.key,
+						value: d3.mean(d.values, function(v){return v.tone.score;}),
+						icon:d.values[0].weather_icon
+					};
+				})
+				.sort(function(a, b) { 
+					return b.value - a.value;
+				});
+			for (var i = 0; i < grouped_data.length; i++) {
+				drawGaugeChart(grouped_data[i].value, grouped_data[i].key, grouped_data[i].icon);
+			};
+		}
+
+		function drawGaugeChart(value, text, icon) {
+			var width = 200,
+				height = 200;
+
+			var rad = (width / 2) - 10;
+			var offset = rad * 0.02;
+
+			var arc = d3.svg.arc()
+				.outerRadius(rad)
+				.innerRadius(rad)
+				.startAngle(0)
+				.endAngle((value * 360) * (Math.PI/180));
+
+			var svg = d3.select("#charts").append('svg');
+			var g = svg.attr('width', width)
+				.attr('height', height)
+				.append('g')
+				.attr('transform', 'translate(' + (width / 2) + ',' + (height / 2) + ')');
+
+			var circle = g.append('circle')
+				.attr('r', rad - offset * 2 - 15)
+				.style('fill', '#B7B1A5');
+		
+			g.append("path")
+				.attr("d", arc)
+				.style('stroke', '#2196F3')
+				.attr('class', 'outer')
+				.style('fill', 'none')
+				.style('stroke-width', 10)
+				.attr('stroke-linecap', 'round')
+				.attr('stroke-linejoin', 'round');
+
+			var line1 = g.append('text')
+				.style("text-anchor", "middle");
+
+			var total = Math.round(value * 100);
+			line1.append('tspan')
+				.style('font-size', '1.5em')
+				.text( Math.round(value * 100))
+				.attr('y', '-7.5%');
+
+			line1.append('tspan')
+				.style('font-size', '1em')
+				.text('%')
+
+			var line2 = g.append('svg:image')
+				.attr('xlink:href', 'images/weathericons/icon' + icon + '.png')
+				.attr('x', '-25px')
+				.attr('y', '-12px')
+				.style("width", "50px")
+				.style("height", "50px");
+
+			var line3 = g.append('text')
+				.attr('dy', '24%')
+				.style("text-anchor", "middle")
+				.style('font-size', '0.75em')
+				.text(text)
+		}
+
+		function drawScatterPlot(json) {
+			var margin = {top: 100, right: 100, bottom: 100, left: 100},
+				width = 1150 - margin.left - margin.right,
+				height = 500 - margin.top - margin.bottom;
+
+			var icons = {};
+			for (var i = 0; i < grouped_data.length; i++) {
+				icons[grouped_data[i].key] = grouped_data[i].icon;
+			};
+
+			var keys = grouped_data.map(function (d) {return d.key;});
+
+			var x = d3.scale.ordinal()
+				.domain(keys)
+				.rangePoints([0, width]);
+
+			var y = d3.scale.linear()
+    	      .domain([0, 1])
+    	      .range([ height, 0 ]);
+
+			var xAxis = d3.svg.axis()
+				.scale(x)
+				.orient("bottom");
+
+			var yAxis = d3.svg.axis()
+				.scale(y)
+				.orient('left');
+
+			var svg = d3.select("body").append("svg")
+				.attr("width", width + margin.left + margin.right)
+				.attr("height", height + margin.top + margin.bottom)
+			  .append("g")
+				.attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+			svg.append("g")
+				.attr("class", "x axis")
+				.attr("transform", "translate(0," + (height + 50) + ")")
+				.call(xAxis);
+
+			svg.append("g")
+				.attr("class", "y axis")
+				.attr("transform", "translate(-10,0)")
+				.call(yAxis);
+
+			svg.selectAll("scatter-dots")
+				.data(json)
+				.enter().append("svg:circle")
+				.attr("cx", function (d,i) { return x(d.weather); } )
+				.attr("cy", function (d) { return y(d.tone.score); } )
+				.attr("r", 4);
+
+			var x_ticks =svg.select(".x.axis").node().children;
+			for (var i = 0; i < x_ticks.length; i++) {
+				d3.select(x_ticks[i])
+					.append('svg:image')
+					.attr("width", "50px")
+					.attr("height", "50px")
+					.attr("x", "-25px")
+					.attr("y", "-50px")
+					.attr('xlink:href', function(d) { return 'images/weathericons/icon' + icons[d] + '.png';});
+			};
+			
+
+		}
+
+	</script>
+
+</body>
+
+</html>
