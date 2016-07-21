@@ -15,6 +15,14 @@
 			text-align:center;
 			display:block;
 		}
+
+		.domain {
+			fill: none;
+		}
+
+		svg {
+			fill: #444;
+		}
 	</style>
 </head>
 
@@ -25,13 +33,16 @@
 	<script type="text/javascript">
 
 		var xmlhttp = new XMLHttpRequest();
-		var url = "http://ttt-tone-twitter-weather.mybluemix.net/output";
+
+		// TODO: change next line to point to your REST API
+		var url = "output.json";
 
 		xmlhttp.onreadystatechange = function() {
 			if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
 				var json = JSON.parse(xmlhttp.responseText);
 				hideLoading();
-				drawCharts(json);
+				drawGaugeCharts(json);
+				drawScatterPlot(json);
 			}
 		};
 		xmlhttp.open("GET", url, true);
@@ -41,8 +52,10 @@
 			document.getElementById("loading").style.display = 'none';
 		}
 
-		function drawCharts(json) {
-			var grouped_data = d3.nest()
+		var grouped_data;
+
+		function drawGaugeCharts(json) {
+			grouped_data = d3.nest()
 				.key(function(d) {
 					return d.weather;
 				}).entries(json)
@@ -57,11 +70,11 @@
 					return b.value - a.value;
 				});
 			for (var i = 0; i < grouped_data.length; i++) {
-				drawChart(grouped_data[i].value, grouped_data[i].key, grouped_data[i].icon);
+				drawGaugeChart(grouped_data[i].value, grouped_data[i].key, grouped_data[i].icon);
 			};
 		}
 
-		function drawChart(value, text, icon) {
+		function drawGaugeChart(value, text, icon) {
 			var width = 200,
 				height = 200;
 
@@ -96,11 +109,9 @@
 			var line1 = g.append('text')
 				.style("text-anchor", "middle");
 
-
 			var total = Math.round(value * 100);
 			line1.append('tspan')
 				.style('font-size', '1.5em')
-				// .style('fill', '#444')
 				.text( Math.round(value * 100))
 				.attr('y', '-7.5%');
 
@@ -120,7 +131,72 @@
 				.style("text-anchor", "middle")
 				.style('font-size', '0.75em')
 				.text(text)
-		}	
+		}
+
+		function drawScatterPlot(json) {
+			var margin = {top: 100, right: 100, bottom: 100, left: 100},
+				width = 1150 - margin.left - margin.right,
+				height = 500 - margin.top - margin.bottom;
+
+			var icons = {};
+			for (var i = 0; i < grouped_data.length; i++) {
+				icons[grouped_data[i].key] = grouped_data[i].icon;
+			};
+
+			var keys = grouped_data.map(function (d) {return d.key;});
+
+			var x = d3.scale.ordinal()
+				.domain(keys)
+				.rangePoints([0, width]);
+
+			var y = d3.scale.linear()
+    	      .domain([0, 1])
+    	      .range([ height, 0 ]);
+
+			var xAxis = d3.svg.axis()
+				.scale(x)
+				.orient("bottom");
+
+			var yAxis = d3.svg.axis()
+				.scale(y)
+				.orient('left');
+
+			var svg = d3.select("body").append("svg")
+				.attr("width", width + margin.left + margin.right)
+				.attr("height", height + margin.top + margin.bottom)
+			  .append("g")
+				.attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+			svg.append("g")
+				.attr("class", "x axis")
+				.attr("transform", "translate(0," + (height + 50) + ")")
+				.call(xAxis);
+
+			svg.append("g")
+				.attr("class", "y axis")
+				.attr("transform", "translate(-10,0)")
+				.call(yAxis);
+
+			svg.selectAll("scatter-dots")
+				.data(json)
+				.enter().append("svg:circle")
+				.attr("cx", function (d,i) { return x(d.weather); } )
+				.attr("cy", function (d) { return y(d.tone.score); } )
+				.attr("r", 4);
+
+			var x_ticks =svg.select(".x.axis").node().children;
+			for (var i = 0; i < x_ticks.length; i++) {
+				d3.select(x_ticks[i])
+					.append('svg:image')
+					.attr("width", "50px")
+					.attr("height", "50px")
+					.attr("x", "-25px")
+					.attr("y", "-50px")
+					.attr('xlink:href', function(d) { return 'images/weathericons/icon' + icons[d] + '.png';});
+			};
+			
+
+		}
 
 	</script>
 
